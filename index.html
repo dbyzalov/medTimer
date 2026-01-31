@@ -364,8 +364,9 @@
   let cuesScaled = [];
   let nextCueIndex = 0;
 
-  // ---- Keep screen awake (best-effort) ----
+  // ---- Wake Lock ----
   let wakeLockSentinel = null;
+
   async function requestWakeLock() {
     try {
       if (!("wakeLock" in navigator)) return false;
@@ -376,6 +377,7 @@
       return false;
     }
   }
+
   async function releaseWakeLock() {
     try { if (wakeLockSentinel) await wakeLockSentinel.release(); } catch {}
     wakeLockSentinel = null;
@@ -397,11 +399,12 @@
     }
   }
 
-  // Prime audio early (no sound). Helps “first launch” in standalone mode.
-  function primeAudio() {
+  // IMPORTANT: synchronous unlock (no await) to preserve user-gesture on iOS web app
+  function unlockAudioSyncFromGesture() {
     try {
       ensureAudioSync();
-      audioCtx.resume().catch(() => {});
+      audioCtx.resume(); // do not await
+      // silent tick
       const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
       const src = audioCtx.createBufferSource();
       src.buffer = buf;
@@ -409,25 +412,20 @@
       src.start(0);
       src.stop(0);
     } catch {}
+    return audioCtx && audioCtx.state === "running";
   }
 
-  async function unlockAudioWithWait(maxMs = 700) {
-    ensureAudioSync();
-
-    // Kick once in the user gesture
-    try { await audioCtx.resume(); } catch {}
-
-    // Small post-kick polling (often fixes “nothing happens until re-open”)
-    const step = 60;
-    for (let waited = 0; waited <= maxMs; waited += step) {
-      if (audioCtx.state === "running") return true;
-      try { await audioCtx.resume(); } catch {}
-      await new Promise(r => setTimeout(r, step));
+  // A short “resume burst” right after the gesture (sometimes helps iOS web app)
+  function resumeBurst() {
+    if (!audioCtx) return;
+    for (let i = 0; i < 12; i++) {
+      setTimeout(() => {
+        try { audioCtx.resume(); } catch {}
+      }, i * 60);
     }
-    return audioCtx.state === "running";
   }
 
-  // Only make sound if we're actually running, to avoid “sound later” surprises.
+  // Only create oscillators when audio is actually running (prevents “sound later” surprises)
   function canPlay() {
     ensureAudioSync();
     return audioCtx.state === "running";
@@ -496,7 +494,7 @@
       osc.stop(now + decays[i] + 0.12);
     });
 
-    // Strike noise
+    // strike noise
     const noiseDur = 0.45;
     const bufferSize = Math.floor(audioCtx.sampleRate * noiseDur);
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -520,12 +518,11 @@
   }
 
   function playDoubleBeep() {
-    // If audio is temporarily unavailable, retries below will catch it.
     playCueWithRetry("beep");
     setTimeout(() => playCueWithRetry("beep"), 900);
   }
 
-  function playCueWithRetry(kind, tries = 10, gapMs = 90) {
+  function playCueWithRetry(kind, tries = 14, gapMs = 90) {
     if (state !== "running") return;
 
     let ok = false;
@@ -544,7 +541,7 @@
   }
 
   function computeScaledCues(selectedMinutes) {
-    const scale = selectedMinutes / TEMPLATE_TOTAL_MIN;
+    const scale = selectedMinutes / 30;
 
     const cues = templateCues.map(c => ({
       tSec: Math.round(c.tMin * 60 * scale),
@@ -555,11 +552,11 @@
     cues[0].tSec = 0;
     cues[cues.length - 1].tSec = selectedMinutes * 60;
 
-    // Strictly increasing
     for (let i = 1; i < cues.length; i++) {
       if (cues[i].tSec <= cues[i - 1].tSec) cues[i].tSec = cues[i - 1].tSec + 1;
     }
     cues[cues.length - 1].tSec = selectedMinutes * 60;
+
     return cues;
   }
 
@@ -584,11 +581,10 @@
   function setButtons() {
     const running = state === "running";
     startBtn.disabled = running;
-    stopBtn.disabled = !running;        // key change: stop only active while running
+    stopBtn.disabled = !running;
     minutesSel.disabled = running;
   }
 
-  // Skip 0-second cue (we play bell immediately on start)
   function scheduleCues() {
     clearCues();
     nextCueIndex = 0;
@@ -630,12 +626,9 @@
     if (state === "running") rafId = requestAnimationFrame(tickUI);
   }
 
-  async function start() {
-    // UI should react immediately, even if audio is temporarily flaky.
+  function start() {
+    // Must be synchronous: iOS web app is picky about gesture timing.
     setStatus("Starting…");
-
-    // Keep screen awake (best effort)
-    requestWakeLock().catch(() => {});
 
     const selectedMinutes = parseInt(minutesSel.value, 10);
     totalSec = selectedMinutes * 60;
@@ -647,11 +640,16 @@
     setStatus("Meditating");
     setButtons();
 
-    // Try to unlock audio; if it succeeds a bit late, retries below will still ring.
-    unlockAudioWithWait().catch(() => {});
+    // 1) Unlock audio FIRST (gesture-sensitive)
+    unlockAudioSyncFromGesture();
+    resumeBurst();
 
-    // Start bell (with retry window to cover “first launch” quirk)
-    playCueWithRetry("bell", 12, 90);
+    // 2) Then request wake lock (don’t steal the activation before audio)
+    //    (still best-effort; if it fails, timer still runs)
+    requestWakeLock().catch(() => {});
+
+    // Start bell (with retry window so it can fire as soon as audio flips to running)
+    playCueWithRetry("bell");
 
     scheduleCues();
 
@@ -672,75 +670,4 @@
 
     const selectedMinutes = parseInt(minutesSel.value, 10);
     totalSec = selectedMinutes * 60;
-    timeLeftEl.textContent = mmss(totalSec);
-
-    cuesScaled = computeScaledCues(selectedMinutes);
-    nextCueIndex = 0;
-    renderChips(0);
-  }
-
-  function finish() {
-    clearCues();
-    cancelAnimationFrame(rafId);
-    releaseWakeLock().catch(() => {});
-
-    // UI polish: after finishing, look “ready” again (Start enabled, Stop disabled).
-    state = "idle";
-    setStatus("Done");
-    stageLabel.textContent = "Session complete";
-    timeLeftEl.textContent = "00:00";
-    setProgress(1);
-    setButtons();
-
-    // Leave chips/progress at completion; user can press Start again immediately.
-  }
-
-  function init() {
-    const selectedMinutes = parseInt(minutesSel.value, 10);
-    totalSec = selectedMinutes * 60;
-    cuesScaled = computeScaledCues(selectedMinutes);
-    timeLeftEl.textContent = mmss(totalSec);
-    setProgress(0);
-    renderChips(0);
-    setButtons();
-  }
-
-  // ---- Events (simple and reliable) ----
-  let lastStartAt = 0;
-  function startOnce() {
-    const now = Date.now();
-    if (now - lastStartAt < 700) return; // avoid touchend + click double fire
-    lastStartAt = now;
-
-    if (state === "running") return;
-    start().catch(() => setStatus("Ready"));
-  }
-
-  // Prime audio earlier than click (helps iOS web app first-launch quirk)
-  startBtn.addEventListener("touchstart", primeAudio, { passive: true });
-  startBtn.addEventListener("mousedown",  primeAudio, { passive: true });
-
-  startBtn.addEventListener("touchend", () => startOnce(), { passive: true });
-  startBtn.addEventListener("click", () => startOnce());
-
-  stopBtn.addEventListener("click", () => stop());
-  minutesSel.addEventListener("change", () => {
-    if (state !== "idle") return;
-    init();
-  });
-
-  // Foreground handling
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      wakeLockSentinel = null;
-      return;
-    }
-    if (state === "running" && !wakeLockSentinel) requestWakeLock().catch(() => {});
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
-  });
-
-  init();
-})();
-</script>
-</body>
-</html>
+    timeLeftEl.te
