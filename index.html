@@ -290,7 +290,6 @@
             <div class="hint">Stage beeps scale proportionally from the 30-minute template.</div>
           </div>
 
-          <!-- Static options so it never shows “no options” anywhere -->
           <select id="minutes" aria-label="Total meditation time in minutes">
             <option value="5">5 min</option>
             <option value="10">10 min</option>
@@ -372,6 +371,36 @@
     return `+${mmss(secondsFromStart)}`;
   }
 
+  // ---- State ----
+  let state = "idle"; // idle | running | done
+  let totalSec = 30 * 60;
+  let startPerf = 0;
+  let rafId = 0;
+  let cueTimeouts = [];
+  let cuesScaled = [];
+  let nextCueIndex = 0;
+
+  // ---- Keep screen awake (best-effort) ----
+  let wakeLockSentinel = null;
+
+  async function requestWakeLock() {
+    try {
+      if (!("wakeLock" in navigator)) return false;
+      wakeLockSentinel = await navigator.wakeLock.request("screen");
+      return true;
+    } catch {
+      wakeLockSentinel = null;
+      return false;
+    }
+  }
+
+  async function releaseWakeLock() {
+    try {
+      if (wakeLockSentinel) await wakeLockSentinel.release();
+    } catch {}
+    wakeLockSentinel = null;
+  }
+
   // ---- Web Audio (robust iOS unlock) ----
   let audioCtx = null;
   let master = null;
@@ -379,7 +408,7 @@
   function ensureAudioSync() {
     if (!audioCtx || audioCtx.state === "closed") {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      master = null; // recreate master for new context
+      master = null;
     }
     if (!master) {
       master = audioCtx.createGain();
@@ -388,11 +417,10 @@
     }
   }
 
-  // Call from a user gesture (Start button). This helps a lot for iOS standalone mode.
+  // Call from a user gesture (Start). This helps a lot for iOS standalone mode.
   async function unlockAudio() {
     ensureAudioSync();
 
-    // Awaiting resume is important on iOS.
     if (audioCtx.state !== "running") {
       try { await audioCtx.resume(); } catch (_) {}
     }
@@ -410,14 +438,27 @@
     return audioCtx.state === "running";
   }
 
-  // Best-effort resume when returning to foreground (may or may not work without a gesture)
+  // Visibility / foreground handling:
+  // - iOS may drop wake locks & suspend audio when backgrounding
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && audioCtx && audioCtx.state === "suspended") {
+    if (document.hidden) {
+      // Wake lock is typically auto-released; keep our reference clean.
+      wakeLockSentinel = null;
+      return;
+    }
+
+    // Best-effort audio resume (may still require a user gesture in some cases)
+    if (audioCtx && audioCtx.state === "suspended") {
       audioCtx.resume().catch(() => {});
+    }
+
+    // Re-request wake lock if we’re actively meditating
+    if (state === "running" && !wakeLockSentinel) {
+      requestWakeLock().catch(() => {});
     }
   });
 
-  // Beep: louder + 50% longer (still a single beep)
+  // Beep: louder + 50% longer (single beep)
   function playBeep() {
     ensureAudioSync();
     const now = audioCtx.currentTime;
@@ -428,16 +469,16 @@
     osc.type = "sine";
     osc.frequency.setValueAtTime(880, now);
 
-    // Envelope (≈0.70s total): attack -> brief hold -> decay
-    const peak = 0.22;        // louder
+    // Envelope (~0.70s total): attack -> brief hold -> decay
+    const peak = 0.22;     // louder
     const attack = 0.03;
-    const hold = 0.15;
+    const holdUntil = 0.15;
     const decayEnd = 0.63;
     const stopAt = 0.70;
 
     gain.gain.setValueAtTime(0.0001, now);
     gain.gain.exponentialRampToValueAtTime(peak, now + attack);
-    gain.gain.setValueAtTime(peak, now + hold);
+    gain.gain.setValueAtTime(peak, now + holdUntil);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + decayEnd);
 
     osc.connect(gain);
@@ -447,7 +488,7 @@
     osc.stop(now + stopAt);
   }
 
-  // Bell: longer + brighter (multi-partials, longer decay)
+  // Bell: longer + brighter
   function playBell() {
     ensureAudioSync();
     const now = audioCtx.currentTime;
@@ -456,7 +497,6 @@
     mix.gain.value = 1.0;
     mix.connect(master);
 
-    // Brighter bell-ish partials (slightly inharmonic)
     const base = 528;
     const ratios = [1.0, 2.0, 2.76, 3.12, 4.20, 5.40];
     const amps   = [0.16, 0.10, 0.08, 0.055, 0.040, 0.030];
@@ -467,8 +507,7 @@
       const gain = audioCtx.createGain();
 
       osc.type = (i >= 2) ? "triangle" : "sine";
-      const f = base * r;
-      osc.frequency.setValueAtTime(f, now);
+      osc.frequency.setValueAtTime(base * r, now);
       osc.detune.setValueAtTime((Math.random() * 10) - 5, now);
 
       gain.gain.setValueAtTime(0.0001, now);
@@ -505,19 +544,11 @@
 
   function playDoubleBeep() {
     playBeep();
-    // Longer gap so it reads as two distinct beeps with the longer beep length
+    // Longer gap because the beep itself is longer now
     setTimeout(() => { try { playBeep(); } catch {} }, 900);
   }
 
-  // ---- Timer scheduling ----
-  let state = "idle"; // idle | running | done
-  let totalSec = 30 * 60;
-  let startPerf = 0;
-  let rafId = 0;
-  let cueTimeouts = [];
-  let cuesScaled = [];
-  let nextCueIndex = 0;
-
+  // ---- Timer helpers ----
   function clearCues() {
     cueTimeouts.forEach(id => clearTimeout(id));
     cueTimeouts = [];
@@ -536,7 +567,7 @@
     cues[0].tSec = 0;
     cues[cues.length - 1].tSec = selectedMinutes * 60;
 
-    // Keep strictly increasing to avoid rounding collisions
+    // Avoid rounding collisions
     for (let i = 1; i < cues.length; i++) {
       if (cues[i].tSec <= cues[i - 1].tSec) cues[i].tSec = cues[i - 1].tSec + 1;
     }
@@ -575,7 +606,7 @@
     else playBeep();
   }
 
-  // IMPORTANT: we do NOT schedule the 0-second cue (we play start bell immediately on Start tap)
+  // Do NOT schedule the 0-second cue (we ring immediately on Start tap).
   function scheduleCues() {
     clearCues();
     nextCueIndex = 0;
@@ -621,6 +652,9 @@
       return;
     }
 
+    // Keep screen awake (best-effort). If unsupported, it just fails silently.
+    requestWakeLock().catch(() => {});
+
     const selectedMinutes = parseInt(minutesSel.value, 10);
     totalSec = selectedMinutes * 60;
     cuesScaled = computeScaledCues(selectedMinutes);
@@ -631,11 +665,8 @@
     stageLabel.textContent = "Start bell";
     setButtons();
 
-    // Start bell (once, immediately on user gesture)
-    triggerCue("bell");
-
-    // Schedule remaining cues (including end bell)
-    scheduleCues();
+    triggerCue("bell");     // start bell immediately
+    scheduleCues();         // remaining cues (including end bell)
 
     cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(tickUI);
@@ -644,6 +675,8 @@
   function stop() {
     clearCues();
     cancelAnimationFrame(rafId);
+
+    releaseWakeLock().catch(() => {});
 
     state = "idle";
     setStatus("Ready");
@@ -663,6 +696,9 @@
   function finish() {
     clearCues();
     cancelAnimationFrame(rafId);
+
+    releaseWakeLock().catch(() => {});
+
     state = "done";
     setStatus("Done");
     stageLabel.textContent = "Session complete";
@@ -671,19 +707,29 @@
   }
 
   // Initial render
-  stop();
+  function init() {
+    const selectedMinutes = parseInt(minutesSel.value, 10);
+    totalSec = selectedMinutes * 60;
+    cuesScaled = computeScaledCues(selectedMinutes);
+    timeLeftEl.textContent = mmss(totalSec);
+    setProgress(0);
+    renderChips(0);
+    setButtons();
+  }
 
   // Events
   startBtn.addEventListener("click", () => { start().catch(() => {}); });
   stopBtn.addEventListener("click", () => {
-    startBtn.disabled = false; // allow restart after done
+    startBtn.disabled = false;
     stop();
   });
 
   minutesSel.addEventListener("change", () => {
     if (state !== "idle") return;
-    stop();
+    init();
   });
+
+  init();
 })();
 </script>
 </body>
