@@ -164,7 +164,10 @@
       font-size: 16px;
       outline:none;
       width: 160px;
+      color-scheme: dark;
     }
+
+    option { background: #0b1020; color: rgba(255,255,255,.92); }
 
     .hint{
       font-size: 12px;
@@ -286,7 +289,22 @@
             <label for="minutes">Total time</label>
             <div class="hint">Stage beeps scale proportionally from the 30-minute template.</div>
           </div>
-          <select id="minutes" aria-label="Total meditation time in minutes"></select>
+
+          <!-- Static options so it never shows “no options” anywhere -->
+          <select id="minutes" aria-label="Total meditation time in minutes">
+            <option value="5">5 min</option>
+            <option value="10">10 min</option>
+            <option value="15">15 min</option>
+            <option value="20">20 min</option>
+            <option value="25">25 min</option>
+            <option value="30" selected>30 min</option>
+            <option value="35">35 min</option>
+            <option value="40">40 min</option>
+            <option value="45">45 min</option>
+            <option value="50">50 min</option>
+            <option value="55">55 min</option>
+            <option value="60">60 min</option>
+          </select>
         </div>
       </div>
 
@@ -302,7 +320,7 @@
     </div>
 
     <div class="footer">
-      Tip: on iPhone Safari, use Share → <span class="mono">Add to Home Screen</span> for a full-screen feel.
+      Tip: in Safari, Share → <span class="mono">Add to Home Screen</span> for a full-screen feel.
     </div>
   </div>
 
@@ -321,24 +339,15 @@
   ];
 
   // ---- UI elements ----
-  const minutesSel = document.getElementById("minutes");
-  const startBtn = document.getElementById("startBtn");
-  const stopBtn  = document.getElementById("stopBtn");
-  const timeLeftEl = document.getElementById("timeLeft");
+  const minutesSel  = document.getElementById("minutes");
+  const startBtn    = document.getElementById("startBtn");
+  const stopBtn     = document.getElementById("stopBtn");
+  const timeLeftEl  = document.getElementById("timeLeft");
   const statusBadge = document.getElementById("statusBadge");
-  const stageLabel = document.getElementById("stageLabel");
-  const ring = document.getElementById("ring");
-  const pctEl = document.getElementById("pct");
-  const chipsEl = document.getElementById("chips");
-
-  // Populate 5..60 minutes in increments of 5
-  for (let m = 5; m <= 60; m += 5) {
-    const opt = document.createElement("option");
-    opt.value = String(m);
-    opt.textContent = `${m} min`;
-    minutesSel.appendChild(opt);
-  }
-  minutesSel.value = "30";
+  const stageLabel  = document.getElementById("stageLabel");
+  const ring        = document.getElementById("ring");
+  const pctEl       = document.getElementById("pct");
+  const chipsEl     = document.getElementById("chips");
 
   // ---- Progress ring ----
   const R = 36;
@@ -363,71 +372,104 @@
     return `+${mmss(secondsFromStart)}`;
   }
 
-  // ---- Web Audio (no files) ----
+  // ---- Web Audio (robust iOS unlock) ----
   let audioCtx = null;
+  let master = null;
 
-  function ensureAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
+  function ensureAudioSync() {
+    if (!audioCtx || audioCtx.state === "closed") {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      master = null; // recreate master for new context
+    }
+    if (!master) {
+      master = audioCtx.createGain();
+      master.gain.value = 0.95;
+      master.connect(audioCtx.destination);
+    }
   }
 
-  function masterGain() {
-    const g = audioCtx.createGain();
-    g.gain.value = 0.95;
-    g.connect(audioCtx.destination);
-    return g;
+  // Call from a user gesture (Start button). This helps a lot for iOS standalone mode.
+  async function unlockAudio() {
+    ensureAudioSync();
+
+    // Awaiting resume is important on iOS.
+    if (audioCtx.state !== "running") {
+      try { await audioCtx.resume(); } catch (_) {}
+    }
+
+    // Tiny silent tick in the same gesture: common Safari unlock pattern.
+    try {
+      const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(audioCtx.destination);
+      src.start(0);
+      src.stop(0);
+    } catch (_) {}
+
+    return audioCtx.state === "running";
   }
 
-  // Longer single beep (still unobtrusive)
+  // Best-effort resume when returning to foreground (may or may not work without a gesture)
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+  });
+
+  // Beep: louder + 50% longer (still a single beep)
   function playBeep() {
-    ensureAudio();
+    ensureAudioSync();
     const now = audioCtx.currentTime;
 
-    const osc = audioCtx.createOscillator();
+    const osc  = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    const out = masterGain();
 
     osc.type = "sine";
     osc.frequency.setValueAtTime(880, now);
 
-    // Envelope: gentle attack + longer decay
+    // Envelope (≈0.70s total): attack -> brief hold -> decay
+    const peak = 0.22;        // louder
+    const attack = 0.03;
+    const hold = 0.15;
+    const decayEnd = 0.63;
+    const stopAt = 0.70;
+
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+    gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+    gain.gain.setValueAtTime(peak, now + hold);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + decayEnd);
 
     osc.connect(gain);
-    gain.connect(out);
+    gain.connect(master);
 
     osc.start(now);
-    osc.stop(now + 0.46);
+    osc.stop(now + stopAt);
   }
 
-  // Longer + brighter bell (more partials, longer decay)
+  // Bell: longer + brighter (multi-partials, longer decay)
   function playBell() {
-    ensureAudio();
+    ensureAudioSync();
     const now = audioCtx.currentTime;
 
-    const out = masterGain();
     const mix = audioCtx.createGain();
     mix.gain.value = 1.0;
-    mix.connect(out);
+    mix.connect(master);
 
     // Brighter bell-ish partials (slightly inharmonic)
-    const base = 528; // brighter than 432
+    const base = 528;
     const ratios = [1.0, 2.0, 2.76, 3.12, 4.20, 5.40];
-    const amps   = [0.14, 0.09, 0.07, 0.05, 0.035, 0.025];
-    const decays = [4.8, 4.0, 3.4, 3.0, 2.6, 2.2];
+    const amps   = [0.16, 0.10, 0.08, 0.055, 0.040, 0.030];
+    const decays = [5.2, 4.3, 3.7, 3.2, 2.8, 2.4];
 
     ratios.forEach((r, i) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
 
-      // Mix of sine + triangle on upper partials for brightness
       osc.type = (i >= 2) ? "triangle" : "sine";
-
       const f = base * r;
       osc.frequency.setValueAtTime(f, now);
-      osc.detune.setValueAtTime((Math.random() * 10) - 5, now); // subtle shimmer
+      osc.detune.setValueAtTime((Math.random() * 10) - 5, now);
 
       gain.gain.setValueAtTime(0.0001, now);
       gain.gain.exponentialRampToValueAtTime(amps[i], now + 0.02);
@@ -440,7 +482,7 @@
       osc.stop(now + decays[i] + 0.12);
     });
 
-    // Slight “strike” noise (a touch longer than before)
+    // Slight “strike” noise
     const noiseDur = 0.45;
     const bufferSize = Math.floor(audioCtx.sampleRate * noiseDur);
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -456,14 +498,15 @@
     nGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
 
     noise.connect(nGain);
-    nGain.connect(out);
+    nGain.connect(master);
     noise.start(now);
     noise.stop(now + noiseDur);
   }
 
   function playDoubleBeep() {
     playBeep();
-    setTimeout(() => { try { playBeep(); } catch {} }, 500);
+    // Longer gap so it reads as two distinct beeps with the longer beep length
+    setTimeout(() => { try { playBeep(); } catch {} }, 900);
   }
 
   // ---- Timer scheduling ----
@@ -472,7 +515,7 @@
   let startPerf = 0;
   let rafId = 0;
   let cueTimeouts = [];
-  let cuesScaled = []; // {tSec, kind, label}
+  let cuesScaled = [];
   let nextCueIndex = 0;
 
   function clearCues() {
@@ -503,9 +546,8 @@
 
   function renderChips(elapsedSec = 0) {
     chipsEl.innerHTML = "";
-    let activeIdx = nextCueIndex;
 
-    // compute next cue index for display
+    let activeIdx = nextCueIndex;
     while (activeIdx < cuesScaled.length && cuesScaled[activeIdx].tSec <= elapsedSec + 0.02) activeIdx++;
 
     cuesScaled.forEach((c, idx) => {
@@ -533,41 +575,36 @@
     else playBeep();
   }
 
+  // IMPORTANT: we do NOT schedule the 0-second cue (we play start bell immediately on Start tap)
   function scheduleCues() {
     clearCues();
-
-    const elapsedSec = 0; // at schedule start
     nextCueIndex = 0;
 
-    // Schedule all cues relative to startPerf
-    cuesScaled.forEach((cue, idx) => {
+    for (let idx = 1; idx < cuesScaled.length; idx++) {
+      const cue = cuesScaled[idx];
       const delayMs = Math.max(0, cue.tSec * 1000);
+
       const id = setTimeout(() => {
         if (state !== "running") return;
 
-        // Update UI label and play cue
         stageLabel.textContent = cue.label;
         triggerCue(cue.kind);
 
-        // Move pointer and re-render chips
         nextCueIndex = Math.min(cuesScaled.length, idx + 1);
-        const nowPerf = performance.now();
-        const elapsed = (nowPerf - startPerf) / 1000;
+        const elapsed = (performance.now() - startPerf) / 1000;
         renderChips(elapsed);
 
-        // End
         if (cue.tSec >= totalSec) finish();
       }, delayMs);
 
       cueTimeouts.push(id);
-    });
+    }
 
-    renderChips(elapsedSec);
+    renderChips(0);
   }
 
   function tickUI() {
-    const nowPerf = performance.now();
-    const elapsedSec = (nowPerf - startPerf) / 1000;
+    const elapsedSec = (performance.now() - startPerf) / 1000;
     const remaining = totalSec - elapsedSec;
 
     timeLeftEl.textContent = mmss(remaining);
@@ -577,8 +614,12 @@
     if (state === "running") rafId = requestAnimationFrame(tickUI);
   }
 
-  function start() {
-    ensureAudio();
+  async function start() {
+    const ok = await unlockAudio();
+    if (!ok) {
+      setStatus("Tap Start again");
+      return;
+    }
 
     const selectedMinutes = parseInt(minutesSel.value, 10);
     totalSec = selectedMinutes * 60;
@@ -590,10 +631,10 @@
     stageLabel.textContent = "Start bell";
     setButtons();
 
-    // Start bell immediately
+    // Start bell (once, immediately on user gesture)
     triggerCue("bell");
 
-    // Schedule cues (including end bell at total duration)
+    // Schedule remaining cues (including end bell)
     scheduleCues();
 
     cancelAnimationFrame(rafId);
@@ -626,18 +667,16 @@
     setStatus("Done");
     stageLabel.textContent = "Session complete";
     setButtons();
-    // Let user tap Stop to reset
-    startBtn.disabled = true;
+    startBtn.disabled = true; // user taps Stop to reset
   }
 
   // Initial render
   stop();
 
   // Events
-  startBtn.addEventListener("click", start);
+  startBtn.addEventListener("click", () => { start().catch(() => {}); });
   stopBtn.addEventListener("click", () => {
-    // allow resetting even from done state
-    startBtn.disabled = false;
+    startBtn.disabled = false; // allow restart after done
     stop();
   });
 
