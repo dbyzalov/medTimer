@@ -193,7 +193,7 @@
       box-shadow: 0 10px 25px rgba(0,0,0,.25);
       transition: transform .06s ease, opacity .2s ease;
       -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation; /* helps iOS treat taps as “real” */
+      touch-action: manipulation;
     }
     button:active{ transform: translateY(1px) scale(.995); }
     button.primary{
@@ -381,4 +381,386 @@
   let nextCueIndex = 0;
 
   // ---- Keep screen awake (best-effort) ----
-  le
+  let wakeLockSentinel = null;
+
+  async function requestWakeLock() {
+    try {
+      if (!("wakeLock" in navigator)) return false;
+      wakeLockSentinel = await navigator.wakeLock.request("screen");
+      return true;
+    } catch {
+      wakeLockSentinel = null;
+      return false;
+    }
+  }
+
+  async function releaseWakeLock() {
+    try {
+      if (wakeLockSentinel) await wakeLockSentinel.release();
+    } catch {}
+    wakeLockSentinel = null;
+  }
+
+  // ---- Web Audio (robust unlock) ----
+  let audioCtx = null;
+  let master = null;
+
+  function ensureAudioSync() {
+    if (!audioCtx || audioCtx.state === "closed") {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      master = null;
+    }
+    if (!master) {
+      master = audioCtx.createGain();
+      master.gain.value = 0.95;
+      master.connect(audioCtx.destination);
+    }
+  }
+
+  // Prime as early as possible (no sound; just unlock)
+  function primeAudio() {
+    try {
+      ensureAudioSync();
+      audioCtx.resume().catch(() => {});
+      const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+      src.stop(0);
+    } catch {}
+  }
+
+  // Called from Start gesture (click/touchend)
+  async function unlockAudio() {
+    ensureAudioSync();
+    if (audioCtx.state !== "running") {
+      try { await audioCtx.resume(); } catch (_) {}
+    }
+    // Another silent tick in the same gesture
+    try {
+      const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+      src.stop(0);
+    } catch (_) {}
+    return audioCtx.state === "running";
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      wakeLockSentinel = null;
+      return;
+    }
+    if (audioCtx && audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+    if (state === "running" && !wakeLockSentinel) {
+      requestWakeLock().catch(() => {});
+    }
+  });
+
+  // Beep: louder + ~0.70s (single beep)
+  function playBeep() {
+    ensureAudioSync();
+    if (audioCtx.state !== "running") return false;
+
+    const now = audioCtx.currentTime;
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, now);
+
+    const peak = 0.22;
+    const attack = 0.03;
+    const holdUntil = 0.15;
+    const decayEnd = 0.63;
+    const stopAt = 0.70;
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+    gain.gain.setValueAtTime(peak, now + holdUntil);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + decayEnd);
+
+    osc.connect(gain);
+    gain.connect(master);
+
+    osc.start(now);
+    osc.stop(now + stopAt);
+    return true;
+  }
+
+  // Bell: longer + brighter
+  function playBell() {
+    ensureAudioSync();
+    if (audioCtx.state !== "running") return false;
+
+    const now = audioCtx.currentTime;
+
+    const mix = audioCtx.createGain();
+    mix.gain.value = 1.0;
+    mix.connect(master);
+
+    const base = 528;
+    const ratios = [1.0, 2.0, 2.76, 3.12, 4.20, 5.40];
+    const amps   = [0.16, 0.10, 0.08, 0.055, 0.040, 0.030];
+    const decays = [5.2, 4.3, 3.7, 3.2, 2.8, 2.4];
+
+    ratios.forEach((r, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = (i >= 2) ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(base * r, now);
+      osc.detune.setValueAtTime((Math.random() * 10) - 5, now);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(amps[i], now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + decays[i]);
+
+      osc.connect(gain);
+      gain.connect(mix);
+
+      osc.start(now);
+      osc.stop(now + decays[i] + 0.12);
+    });
+
+    const noiseDur = 0.45;
+    const bufferSize = Math.floor(audioCtx.sampleRate * noiseDur);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.06;
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const nGain = audioCtx.createGain();
+    nGain.gain.setValueAtTime(0.0001, now);
+    nGain.gain.exponentialRampToValueAtTime(0.03, now + 0.012);
+    nGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+    noise.connect(nGain);
+    nGain.connect(master);
+    noise.start(now);
+    noise.stop(now + noiseDur);
+
+    return true;
+  }
+
+  function playDoubleBeep() {
+    playBeep();
+    setTimeout(() => { try { playBeep(); } catch {} }, 900);
+  }
+
+  // ---- Timer helpers ----
+  function clearCues() {
+    cueTimeouts.forEach(id => clearTimeout(id));
+    cueTimeouts = [];
+    nextCueIndex = 0;
+  }
+
+  function computeScaledCues(selectedMinutes) {
+    const scale = selectedMinutes / TEMPLATE_TOTAL_MIN;
+
+    const cues = templateCues.map(c => ({
+      tSec: Math.round(c.tMin * 60 * scale),
+      kind: c.kind,
+      label: c.label
+    }));
+
+    cues[0].tSec = 0;
+    cues[cues.length - 1].tSec = selectedMinutes * 60;
+
+    for (let i = 1; i < cues.length; i++) {
+      if (cues[i].tSec <= cues[i - 1].tSec) cues[i].tSec = cues[i - 1].tSec + 1;
+    }
+    cues[cues.length - 1].tSec = selectedMinutes * 60;
+
+    return cues;
+  }
+
+  function renderChips(elapsedSec = 0) {
+    chipsEl.innerHTML = "";
+
+    let activeIdx = nextCueIndex;
+    while (activeIdx < cuesScaled.length && cuesScaled[activeIdx].tSec <= elapsedSec + 0.02) activeIdx++;
+
+    cuesScaled.forEach((c, idx) => {
+      const div = document.createElement("div");
+      const isActive = (idx === activeIdx && state === "running");
+      div.className = "chip" + (isActive ? " active" : "");
+      const kindText = c.kind === "bell" ? "Bell" : (c.kind === "double" ? "Two beeps" : "Beep");
+      div.innerHTML = `<strong>${kindText}</strong> · ${formatCueTime(c.tSec)}`;
+      chipsEl.appendChild(div);
+    });
+  }
+
+  function setStatus(text) { statusBadge.textContent = text; }
+
+  function setButtons() {
+    const running = state === "running";
+    startBtn.disabled = running;
+    stopBtn.disabled = (state === "idle");
+    minutesSel.disabled = running;
+  }
+
+  function scheduleCues() {
+    clearCues();
+    nextCueIndex = 0;
+
+    // Skip index 0 (we play start bell immediately)
+    for (let idx = 1; idx < cuesScaled.length; idx++) {
+      const cue = cuesScaled[idx];
+      const delayMs = Math.max(0, cue.tSec * 1000);
+
+      const id = setTimeout(() => {
+        if (state !== "running") return;
+
+        stageLabel.textContent = cue.label;
+
+        if (cue.kind === "bell") playBell();
+        else if (cue.kind === "double") playDoubleBeep();
+        else playBeep();
+
+        nextCueIndex = Math.min(cuesScaled.length, idx + 1);
+        const elapsed = (performance.now() - startPerf) / 1000;
+        renderChips(elapsed);
+
+        if (cue.tSec >= totalSec) finish();
+      }, delayMs);
+
+      cueTimeouts.push(id);
+    }
+
+    renderChips(0);
+  }
+
+  function tickUI() {
+    const elapsedSec = (performance.now() - startPerf) / 1000;
+    const remaining = totalSec - elapsedSec;
+
+    timeLeftEl.textContent = mmss(remaining);
+    setProgress(elapsedSec / totalSec);
+    renderChips(elapsedSec);
+
+    if (state === "running") rafId = requestAnimationFrame(tickUI);
+  }
+
+  async function start() {
+    setStatus("Starting…");
+
+    // Keep screen awake (best-effort)
+    requestWakeLock().catch(() => {});
+
+    const ok = await unlockAudio();
+    if (!ok) {
+      // Don’t “do nothing”: show user feedback and stay idle.
+      setStatus("Tap Start again");
+      releaseWakeLock().catch(() => {});
+      return;
+    }
+
+    const selectedMinutes = parseInt(minutesSel.value, 10);
+    totalSec = selectedMinutes * 60;
+    cuesScaled = computeScaledCues(selectedMinutes);
+
+    state = "running";
+    startPerf = performance.now();
+    setStatus("Meditating");
+    stageLabel.textContent = "Start bell";
+    setButtons();
+
+    // Start bell once, immediately
+    playBell();
+
+    // Schedule remaining cues
+    scheduleCues();
+
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(tickUI);
+  }
+
+  function stop() {
+    clearCues();
+    cancelAnimationFrame(rafId);
+    releaseWakeLock().catch(() => {});
+
+    state = "idle";
+    setStatus("Ready");
+    stageLabel.textContent = "Bell at start · Beeps along the way · Bell at end";
+    setButtons();
+    setProgress(0);
+
+    const selectedMinutes = parseInt(minutesSel.value, 10);
+    totalSec = selectedMinutes * 60;
+    timeLeftEl.textContent = mmss(totalSec);
+
+    cuesScaled = computeScaledCues(selectedMinutes);
+    nextCueIndex = 0;
+    renderChips(0);
+  }
+
+  function finish() {
+    clearCues();
+    cancelAnimationFrame(rafId);
+    releaseWakeLock().catch(() => {});
+
+    state = "done";
+    setStatus("Done");
+    stageLabel.textContent = "Session complete";
+    setButtons();
+    startBtn.disabled = true; // user taps Stop to reset
+  }
+
+  function init() {
+    const selectedMinutes = parseInt(minutesSel.value, 10);
+    totalSec = selectedMinutes * 60;
+    cuesScaled = computeScaledCues(selectedMinutes);
+    timeLeftEl.textContent = mmss(totalSec);
+    setProgress(0);
+    renderChips(0);
+    setButtons();
+  }
+
+  // ---- Events (simple + reliable) ----
+  let lastStartAt = 0;
+
+  function startOnce() {
+    const now = Date.now();
+    if (now - lastStartAt < 700) return; // avoid touchend+click double fire
+    lastStartAt = now;
+
+    if (state === "running") return;
+    if (state === "done") startBtn.disabled = false;
+
+    start().catch(() => {
+      setStatus("Ready");
+    });
+  }
+
+  // Prime audio early (does not start timer)
+  startBtn.addEventListener("touchstart", primeAudio, { passive: true });
+  startBtn.addEventListener("mousedown", primeAudio, { passive: true });
+
+  // Start (both for touch and mouse)
+  startBtn.addEventListener("touchend", () => startOnce(), { passive: true });
+  startBtn.addEventListener("click", () => startOnce());
+
+  stopBtn.addEventListener("click", () => {
+    startBtn.disabled = false;
+    stop();
+  });
+
+  minutesSel.addEventListener("change", () => {
+    if (state !== "idle") return;
+    init();
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
