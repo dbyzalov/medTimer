@@ -14,6 +14,7 @@
       --shadow: 0 18px 60px rgba(0,0,0,.55);
       --radius: 22px;
     }
+
     * { box-sizing: border-box; }
     body{
       margin:0;
@@ -30,12 +31,14 @@
       justify-content:center;
       padding: 22px 14px;
     }
+
     .app{
       width: min(520px, 100%);
       display:flex;
       flex-direction:column;
       gap: 14px;
     }
+
     .hero{
       padding: 18px 18px 14px;
       border-radius: var(--radius);
@@ -45,6 +48,7 @@
       overflow:hidden;
       position:relative;
     }
+
     .hero::before{
       content:"";
       position:absolute;
@@ -54,6 +58,7 @@
         radial-gradient(260px 260px at 80% 0%, rgba(167,139,250,.16), transparent 60%);
       pointer-events:none;
     }
+
     .title{
       position:relative;
       display:flex;
@@ -61,12 +66,14 @@
       justify-content:space-between;
       gap: 10px;
     }
+
     h1{
       margin:0;
       font-size: 22px;
       letter-spacing: .2px;
       font-weight: 680;
     }
+
     .badge{
       font-size: 12px;
       padding: 6px 10px;
@@ -77,6 +84,7 @@
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
+
     .bigtime{
       position:relative;
       margin-top: 14px;
@@ -85,6 +93,7 @@
       justify-content:space-between;
       gap: 10px;
     }
+
     .clock{
       font-variant-numeric: tabular-nums;
       font-size: 44px;
@@ -97,6 +106,7 @@
       color: var(--muted);
       margin-top: 6px;
     }
+
     .ringWrap{
       position:relative;
       width: 92px;
@@ -113,6 +123,7 @@
       color: var(--muted);
       font-variant-numeric: tabular-nums;
     }
+
     .panel{
       padding: 16px 16px 14px;
       border-radius: var(--radius);
@@ -120,6 +131,7 @@
       border: 1px solid rgba(255,255,255,.07);
       box-shadow: 0 10px 35px rgba(0,0,0,.35);
     }
+
     .row{
       display:flex;
       gap: 10px;
@@ -127,10 +139,12 @@
       justify-content:space-between;
       flex-wrap:wrap;
     }
+
     label{
       font-size: 13px;
       color: var(--muted);
     }
+
     .selectWrap{
       display:flex;
       align-items:center;
@@ -138,12 +152,13 @@
       width: 100%;
       justify-content:space-between;
     }
+
     select{
       appearance:none;
       -webkit-appearance:none;
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.07);
-      color: var(--text);
+      color:var(--text);
       padding: 10px 12px;
       border-radius: 14px;
       font-size: 16px;
@@ -158,15 +173,17 @@
       color: var(--muted);
       line-height: 1.35;
     }
+
     .buttons{
       display:flex;
       gap: 10px;
       margin-top: 12px;
     }
+
     button{
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.07);
-      color: var(--text);
+      color:var(--text);
       padding: 12px 14px;
       border-radius: 16px;
       font-size: 16px;
@@ -219,6 +236,7 @@
       background: rgba(125,211,252,.10);
       color: rgba(255,255,255,.82);
     }
+
     .footer{
       text-align:center;
       font-size: 12px;
@@ -310,19 +328,19 @@
 
 <script>
 (() => {
-  // ---- Template timings (minutes) for a 30-minute sit ----
+  // 30-min template
   const TEMPLATE_TOTAL_MIN = 30;
   const templateCues = [
-    { tMin: 0,  kind: "bell",  label: "Start bell" },
-    { tMin: 3,  kind: "beep",  label: "Stage shift" },
-    { tMin: 8,  kind: "beep",  label: "Stage shift" },
-    { tMin: 13, kind: "beep",  label: "Stage shift" },
-    { tMin: 18, kind: "beep",  label: "Stage shift" },
-    { tMin: 27, kind: "double",label: "Two beeps" },
-    { tMin: 30, kind: "bell",  label: "End bell" },
+    { tMin: 0,  kind: "bell",   label: "Start bell" },
+    { tMin: 3,  kind: "beep",   label: "Stage shift" },
+    { tMin: 8,  kind: "beep",   label: "Stage shift" },
+    { tMin: 13, kind: "beep",   label: "Stage shift" },
+    { tMin: 18, kind: "beep",   label: "Stage shift" },
+    { tMin: 27, kind: "double", label: "Two beeps" },
+    { tMin: 30, kind: "bell",   label: "End bell" },
   ];
 
-  // ---- UI elements ----
+  // UI
   const minutesSel  = document.getElementById("minutes");
   const startBtn    = document.getElementById("startBtn");
   const stopBtn     = document.getElementById("stopBtn");
@@ -333,7 +351,7 @@
   const pctEl       = document.getElementById("pct");
   const chipsEl     = document.getElementById("chips");
 
-  // ---- Progress ring ----
+  // Ring
   const R = 36;
   const CIRC = 2 * Math.PI * R;
   ring.style.strokeDasharray = `${CIRC} ${CIRC}`;
@@ -350,12 +368,10 @@
     const ss = s % 60;
     return `${String(mm).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
   }
+  function formatCueTime(secondsFromStart) { return `+${mmss(secondsFromStart)}`; }
+  function setStatus(text) { statusBadge.textContent = text; }
 
-  function formatCueTime(secondsFromStart) {
-    return `+${mmss(secondsFromStart)}`;
-  }
-
-  // ---- State ----
+  // State
   let state = "idle"; // idle | running
   let totalSec = 30 * 60;
   let startPerf = 0;
@@ -364,9 +380,8 @@
   let cuesScaled = [];
   let nextCueIndex = 0;
 
-  // ---- Wake Lock ----
+  // Wake Lock
   let wakeLockSentinel = null;
-
   async function requestWakeLock() {
     try {
       if (!("wakeLock" in navigator)) return false;
@@ -377,17 +392,16 @@
       return false;
     }
   }
-
   async function releaseWakeLock() {
     try { if (wakeLockSentinel) await wakeLockSentinel.release(); } catch {}
     wakeLockSentinel = null;
   }
 
-  // ---- Web Audio ----
+  // WebAudio
   let audioCtx = null;
   let master = null;
 
-  function ensureAudioSync() {
+  function ensureAudio() {
     if (!audioCtx || audioCtx.state === "closed") {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       master = null;
@@ -399,43 +413,41 @@
     }
   }
 
-  // IMPORTANT: synchronous unlock (no await) to preserve user-gesture on iOS web app
-  function unlockAudioSyncFromGesture() {
+  // Prime audio (call early in the gesture). No sound, just “unlock”.
+  function primeAudio() {
     try {
-      ensureAudioSync();
-      audioCtx.resume(); // do not await
-      // silent tick
-      const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+      ensureAudio();
+      audioCtx.resume(); // intentionally not awaited
+      const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
       const src = audioCtx.createBufferSource();
-      src.buffer = buf;
+      src.buffer = buffer;
       src.connect(audioCtx.destination);
       src.start(0);
       src.stop(0);
     } catch {}
-    return audioCtx && audioCtx.state === "running";
   }
 
-  // A short “resume burst” right after the gesture (sometimes helps iOS web app)
+  // Try resuming repeatedly (helps iOS web-app flip to running)
   function resumeBurst() {
     if (!audioCtx) return;
     for (let i = 0; i < 12; i++) {
-      setTimeout(() => {
-        try { audioCtx.resume(); } catch {}
-      }, i * 60);
+      setTimeout(() => { try { audioCtx.resume(); } catch {} }, i * 60);
     }
   }
 
-  // Only create oscillators when audio is actually running (prevents “sound later” surprises)
-  function canPlay() {
-    ensureAudioSync();
+  function canPlayNow() {
+    ensureAudio();
+    if (audioCtx.state !== "running") {
+      try { audioCtx.resume(); } catch {}
+    }
     return audioCtx.state === "running";
   }
 
-  // Beep: louder + ~0.70s (single beep)
+  // Beep: louder + ~0.70s
   function playBeep() {
-    if (!canPlay()) return false;
-
+    if (!canPlayNow()) return false;
     const now = audioCtx.currentTime;
+
     const osc  = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
 
@@ -463,9 +475,9 @@
 
   // Bell: longer + brighter
   function playBell() {
-    if (!canPlay()) return false;
-
+    if (!canPlayNow()) return false;
     const now = audioCtx.currentTime;
+
     const mix = audioCtx.createGain();
     mix.gain.value = 1.0;
     mix.connect(master);
@@ -494,7 +506,7 @@
       osc.stop(now + decays[i] + 0.12);
     });
 
-    // strike noise
+    // slight strike noise
     const noiseDur = 0.45;
     const bufferSize = Math.floor(audioCtx.sampleRate * noiseDur);
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -517,23 +529,26 @@
     return true;
   }
 
-  function playDoubleBeep() {
-    playCueWithRetry("beep");
-    setTimeout(() => playCueWithRetry("beep"), 900);
-  }
-
-  function playCueWithRetry(kind, tries = 14, gapMs = 90) {
+  // Retry that ALSO keeps trying resume()
+  function playWithRetry(kind, tries = 12, gapMs = 90) {
     if (state !== "running") return;
+
+    // Keep nudging resume
+    try { if (audioCtx && audioCtx.state !== "running") audioCtx.resume(); } catch {}
 
     let ok = false;
     if (kind === "bell") ok = playBell();
-    else if (kind === "double") { playDoubleBeep(); ok = true; }
     else ok = playBeep();
 
-    if (!ok && tries > 0) setTimeout(() => playCueWithRetry(kind, tries - 1, gapMs), gapMs);
+    if (!ok && tries > 0) setTimeout(() => playWithRetry(kind, tries - 1, gapMs), gapMs);
   }
 
-  // ---- Timer scheduling ----
+  function playDoubleBeep() {
+    playWithRetry("beep");
+    setTimeout(() => playWithRetry("beep"), 900);
+  }
+
+  // Cues
   function clearCues() {
     cueTimeouts.forEach(id => clearTimeout(id));
     cueTimeouts = [];
@@ -541,22 +556,18 @@
   }
 
   function computeScaledCues(selectedMinutes) {
-    const scale = selectedMinutes / 30;
-
+    const scale = selectedMinutes / TEMPLATE_TOTAL_MIN;
     const cues = templateCues.map(c => ({
       tSec: Math.round(c.tMin * 60 * scale),
       kind: c.kind,
       label: c.label
     }));
-
     cues[0].tSec = 0;
     cues[cues.length - 1].tSec = selectedMinutes * 60;
-
     for (let i = 1; i < cues.length; i++) {
       if (cues[i].tSec <= cues[i - 1].tSec) cues[i].tSec = cues[i - 1].tSec + 1;
     }
     cues[cues.length - 1].tSec = selectedMinutes * 60;
-
     return cues;
   }
 
@@ -576,8 +587,6 @@
     });
   }
 
-  function setStatus(text) { statusBadge.textContent = text; }
-
   function setButtons() {
     const running = state === "running";
     startBtn.disabled = running;
@@ -589,6 +598,7 @@
     clearCues();
     nextCueIndex = 0;
 
+    // skip index 0 because we fire start bell manually
     for (let idx = 1; idx < cuesScaled.length; idx++) {
       const cue = cuesScaled[idx];
       const delayMs = Math.max(0, cue.tSec * 1000);
@@ -598,9 +608,9 @@
 
         stageLabel.textContent = cue.label;
 
-        if (cue.kind === "bell") playCueWithRetry("bell");
+        if (cue.kind === "bell") playWithRetry("bell");
         else if (cue.kind === "double") playDoubleBeep();
-        else playCueWithRetry("beep");
+        else playWithRetry("beep");
 
         nextCueIndex = Math.min(cuesScaled.length, idx + 1);
         const elapsed = (performance.now() - startPerf) / 1000;
@@ -627,8 +637,11 @@
   }
 
   function start() {
-    // Must be synchronous: iOS web app is picky about gesture timing.
+    // Make UI start immediately even if audio is slow to wake
     setStatus("Starting…");
+
+    primeAudio();     // gesture-sensitive
+    resumeBurst();    // extra nudges
 
     const selectedMinutes = parseInt(minutesSel.value, 10);
     totalSec = selectedMinutes * 60;
@@ -636,20 +649,15 @@
 
     state = "running";
     startPerf = performance.now();
-    stageLabel.textContent = "Start bell";
     setStatus("Meditating");
+    stageLabel.textContent = "Start bell";
     setButtons();
 
-    // 1) Unlock audio FIRST (gesture-sensitive)
-    unlockAudioSyncFromGesture();
-    resumeBurst();
-
-    // 2) Then request wake lock (don’t steal the activation before audio)
-    //    (still best-effort; if it fails, timer still runs)
+    // request wake lock AFTER we prime audio
     requestWakeLock().catch(() => {});
 
-    // Start bell (with retry window so it can fire as soon as audio flips to running)
-    playCueWithRetry("bell");
+    // start bell with retries
+    playWithRetry("bell", 14, 80);
 
     scheduleCues();
 
@@ -670,4 +678,72 @@
 
     const selectedMinutes = parseInt(minutesSel.value, 10);
     totalSec = selectedMinutes * 60;
-    timeLeftEl.te
+    timeLeftEl.textContent = mmss(totalSec);
+
+    cuesScaled = computeScaledCues(selectedMinutes);
+    nextCueIndex = 0;
+    renderChips(0);
+  }
+
+  function finish() {
+    clearCues();
+    cancelAnimationFrame(rafId);
+    releaseWakeLock().catch(() => {});
+
+    // UI polish: Start enabled, Stop disabled
+    state = "idle";
+    setStatus("Done");
+    stageLabel.textContent = "Session complete";
+    timeLeftEl.textContent = "00:00";
+    setProgress(1);
+    setButtons();
+  }
+
+  function init() {
+    const selectedMinutes = parseInt(minutesSel.value, 10);
+    totalSec = selectedMinutes * 60;
+    cuesScaled = computeScaledCues(selectedMinutes);
+    timeLeftEl.textContent = mmss(totalSec);
+    setProgress(0);
+    renderChips(0);
+    setButtons();
+  }
+
+  // Events
+  let lastStartAt = 0;
+  function startOnce() {
+    const now = Date.now();
+    if (now - lastStartAt < 700) return; // avoid touchend+click double fire
+    lastStartAt = now;
+    if (state === "running") return;
+    start();
+  }
+
+  // Prime on earliest gesture
+  startBtn.addEventListener("touchstart", primeAudio, { passive: true });
+  startBtn.addEventListener("mousedown", primeAudio, { passive: true });
+
+  startBtn.addEventListener("touchend", () => startOnce(), { passive: true });
+  startBtn.addEventListener("click", () => startOnce());
+
+  stopBtn.addEventListener("click", () => stop());
+
+  minutesSel.addEventListener("change", () => {
+    if (state !== "idle") return;
+    init();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      wakeLockSentinel = null;
+      return;
+    }
+    if (state === "running" && !wakeLockSentinel) requestWakeLock().catch(() => {});
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
