@@ -14,7 +14,6 @@
       --shadow: 0 18px 60px rgba(0,0,0,.55);
       --radius: 22px;
     }
-
     * { box-sizing: border-box; }
     body{
       margin:0;
@@ -31,53 +30,26 @@
       justify-content:center;
       padding: 22px 14px;
     }
-
-    .app{
-      width: min(520px, 100%);
-      display:flex;
-      flex-direction:column;
-      gap: 14px;
-    }
-
+    .app{ width: min(520px, 100%); display:flex; flex-direction:column; gap: 14px; }
     .hero{
       padding: 18px 18px 14px;
       border-radius: var(--radius);
       background: linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
       box-shadow: var(--shadow);
       border: 1px solid rgba(255,255,255,.08);
-      overflow:hidden;
-      position:relative;
+      overflow:hidden; position:relative;
     }
-
     .hero::before{
-      content:"";
-      position:absolute;
-      inset:-1px;
+      content:""; position:absolute; inset:-1px;
       background:
         radial-gradient(220px 220px at 20% 30%, rgba(125,211,252,.14), transparent 60%),
         radial-gradient(260px 260px at 80% 0%, rgba(167,139,250,.16), transparent 60%);
       pointer-events:none;
     }
-
-    .title{
-      position:relative;
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap: 10px;
-    }
-
-    h1{
-      margin:0;
-      font-size: 22px;
-      letter-spacing: .2px;
-      font-weight: 680;
-    }
-
+    .title{ position:relative; display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+    h1{ margin:0; font-size: 22px; letter-spacing:.2px; font-weight:680; }
     .badge{
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
+      font-size: 12px; padding: 6px 10px; border-radius: 999px;
       background: rgba(255,255,255,.08);
       border: 1px solid rgba(255,255,255,.10);
       color: var(--muted);
@@ -85,44 +57,13 @@
       -webkit-backdrop-filter: blur(8px);
     }
 
-    .bigtime{
-      position:relative;
-      margin-top: 14px;
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
-      gap: 10px;
-    }
+    .bigtime{ position:relative; margin-top:14px; display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+    .clock{ font-variant-numeric: tabular-nums; font-size:44px; line-height:1; font-weight:760; letter-spacing:.5px; }
+    .sub{ font-size:13px; color:var(--muted); margin-top:6px; }
 
-    .clock{
-      font-variant-numeric: tabular-nums;
-      font-size: 44px;
-      line-height: 1;
-      font-weight: 760;
-      letter-spacing: .5px;
-    }
-    .sub{
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-
-    .ringWrap{
-      position:relative;
-      width: 92px;
-      height: 92px;
-      flex: 0 0 auto;
-    }
+    .ringWrap{ position:relative; width:92px; height:92px; flex:0 0 auto; }
     svg{ display:block; }
-    .ringText{
-      position:absolute;
-      inset:0;
-      display:grid;
-      place-items:center;
-      font-size: 12px;
-      color: var(--muted);
-      font-variant-numeric: tabular-nums;
-    }
+    .ringText{ position:absolute; inset:0; display:grid; place-items:center; font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
 
     .panel{
       padding: 16px 16px 14px;
@@ -131,31 +72,10 @@
       border: 1px solid rgba(255,255,255,.07);
       box-shadow: 0 10px 35px rgba(0,0,0,.35);
     }
-
-    .row{
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
-    }
-
-    label{
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .selectWrap{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      width: 100%;
-      justify-content:space-between;
-    }
-
+    label{ font-size:13px; color:var(--muted); }
+    .selectWrap{ display:flex; align-items:center; gap:10px; width:100%; justify-content:space-between; }
     select{
-      appearance:none;
-      -webkit-appearance:none;
+      appearance:none; -webkit-appearance:none;
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.07);
       color:var(--text);
@@ -166,20 +86,9 @@
       width: 160px;
       color-scheme: dark;
     }
-    option { background: #0b1020; color: rgba(255,255,255,.92); }
-
-    .hint{
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-
-    .buttons{
-      display:flex;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
+    option { background:#0b1020; color: rgba(255,255,255,.92); }
+    .hint{ font-size:12px; color:var(--muted); line-height:1.35; }
+    .buttons{ display:flex; gap:10px; margin-top: 12px; }
     button{
       border: 1px solid rgba(255,255,255,.10);
       background: rgba(255,255,255,.07);
@@ -204,23 +113,60 @@
       background: linear-gradient(135deg, rgba(253,164,175,.18), rgba(167,139,250,.12));
       border-color: rgba(253,164,175,.30);
     }
-    button:disabled{
-      opacity:.45;
-      filter: saturate(.6);
-      transform:none !important;
-    }
+    button:disabled{ opacity:.45; filter: saturate(.6); transform:none !important; }
 
-    .timeline{
-      margin-top: 10px;
+    .row2{
+      margin-top: 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .toggle input{
+      width: 46px;
+      height: 28px;
+      appearance:none;
+      -webkit-appearance:none;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      position:relative;
+      outline:none;
+      cursor:pointer;
+    }
+    .toggle input::after{
+      content:"";
+      position:absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.85);
+      transition: transform .18s ease;
+    }
+    .toggle input:checked{
+      background: rgba(125,211,252,.22);
+      border-color: rgba(125,211,252,.35);
+    }
+    .toggle input:checked::after{ transform: translateX(18px); }
+    .toggleText{
       display:flex;
       flex-direction:column;
-      gap: 8px;
+      gap: 2px;
     }
-    .chipRow{
-      display:flex;
-      flex-wrap:wrap;
-      gap: 8px;
-    }
+    .toggleText .t1{ font-size:13px; color: rgba(255,255,255,.82); }
+    .toggleText .t2{ font-size:12px; color: var(--muted); }
+
+    .timeline{ margin-top: 12px; display:flex; flex-direction:column; gap: 8px; }
+    .chipRow{ display:flex; flex-wrap:wrap; gap: 8px; }
     .chip{
       font-size: 12px;
       padding: 7px 10px;
@@ -236,19 +182,13 @@
       background: rgba(125,211,252,.10);
       color: rgba(255,255,255,.82);
     }
-
-    .footer{
-      text-align:center;
-      font-size: 12px;
-      color: rgba(255,255,255,.55);
-      margin-top: 2px;
-    }
+    .footer{ text-align:center; font-size:12px; color: rgba(255,255,255,.55); margin-top: 2px; }
     .mono{ font-variant-numeric: tabular-nums; }
   </style>
 </head>
 
 <body>
-  <div class="app" role="application" aria-label="Meditation timer">
+  <div class="app">
     <div class="hero">
       <div class="title">
         <h1>Meditation Timer</h1>
@@ -286,27 +226,26 @@
     </div>
 
     <div class="panel">
-      <div class="row">
-        <div class="selectWrap">
-          <div>
-            <label for="minutes">Total time</label>
-            <div class="hint">Stage beeps scale proportionally from the 30-minute template.</div>
-          </div>
+      <div class="selectWrap">
+        <div>
+          <label for="minutes">Total time</label>
+          <div class="hint">Stage beeps scale proportionally from the 30-minute template.</div>
+        </div>
+        <select id="minutes">
+          <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
+          <option value="20">20 min</option><option value="25">25 min</option><option value="30" selected>30 min</option>
+          <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
+          <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+        </select>
+      </div>
 
-          <select id="minutes" aria-label="Total meditation time in minutes">
-            <option value="5">5 min</option>
-            <option value="10">10 min</option>
-            <option value="15">15 min</option>
-            <option value="20">20 min</option>
-            <option value="25">25 min</option>
-            <option value="30" selected>30 min</option>
-            <option value="35">35 min</option>
-            <option value="40">40 min</option>
-            <option value="45">45 min</option>
-            <option value="50">50 min</option>
-            <option value="55">55 min</option>
-            <option value="60">60 min</option>
-          </select>
+      <div class="row2">
+        <div class="toggle">
+          <input id="keepAwake" type="checkbox" />
+          <div class="toggleText">
+            <div class="t1">Keep screen awake during session</div>
+            <div class="t2">OFF by default to save battery</div>
+          </div>
         </div>
       </div>
 
@@ -315,21 +254,17 @@
         <button class="warn" id="stopBtn" disabled>Stop</button>
       </div>
 
-      <div class="timeline" aria-label="Timeline cues">
+      <div class="timeline">
         <label>Upcoming cues</label>
         <div class="chipRow" id="chips"></div>
       </div>
     </div>
 
-    <div class="footer">
-      Tip: in Safari, Share → <span class="mono">Add to Home Screen</span> for a full-screen feel.
-    </div>
+    <div class="footer">Tip: in Safari, Share → <span class="mono">Add to Home Screen</span></div>
   </div>
 
 <script>
 (() => {
-  // 30-min template
-  const TEMPLATE_TOTAL_MIN = 30;
   const templateCues = [
     { tMin: 0,  kind: "bell",   label: "Start bell" },
     { tMin: 3,  kind: "beep",   label: "Stage shift" },
@@ -340,8 +275,8 @@
     { tMin: 30, kind: "bell",   label: "End bell" },
   ];
 
-  // UI
   const minutesSel  = document.getElementById("minutes");
+  const keepAwakeEl = document.getElementById("keepAwake");
   const startBtn    = document.getElementById("startBtn");
   const stopBtn     = document.getElementById("stopBtn");
   const timeLeftEl  = document.getElementById("timeLeft");
@@ -351,9 +286,7 @@
   const pctEl       = document.getElementById("pct");
   const chipsEl     = document.getElementById("chips");
 
-  // Ring
-  const R = 36;
-  const CIRC = 2 * Math.PI * R;
+  const R = 36, CIRC = 2 * Math.PI * R;
   ring.style.strokeDasharray = `${CIRC} ${CIRC}`;
   ring.style.strokeDashoffset = `${CIRC}`;
   function setProgress(p) {
@@ -361,386 +294,320 @@
     ring.style.strokeDashoffset = String(CIRC * (1 - clamped));
     pctEl.textContent = `${Math.round(clamped * 100)}%`;
   }
-
-  function mmss(totalSeconds) {
-    const s = Math.max(0, Math.floor(totalSeconds));
-    const mm = Math.floor(s / 60);
-    const ss = s % 60;
+  function mmss(s){
+    s = Math.max(0, Math.floor(s));
+    const mm = Math.floor(s/60), ss = s%60;
     return `${String(mm).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
   }
-  function formatCueTime(secondsFromStart) { return `+${mmss(secondsFromStart)}`; }
-  function setStatus(text) { statusBadge.textContent = text; }
+  function formatCueTime(sec){ return `+${mmss(sec)}`; }
+  function setStatus(t){ statusBadge.textContent = t; }
 
   // State
-  let state = "idle"; // idle | running
+  let state = "idle";
   let totalSec = 30 * 60;
   let startPerf = 0;
-  let rafId = 0;
   let cueTimeouts = [];
   let cuesScaled = [];
   let nextCueIndex = 0;
 
-  // Wake Lock
+  // Wake lock (ONLY if toggle enabled)
   let wakeLockSentinel = null;
   async function requestWakeLock() {
     try {
       if (!("wakeLock" in navigator)) return false;
       wakeLockSentinel = await navigator.wakeLock.request("screen");
       return true;
-    } catch {
-      wakeLockSentinel = null;
-      return false;
-    }
+    } catch { wakeLockSentinel = null; return false; }
   }
-  async function releaseWakeLock() {
+  async function releaseWakeLock(){
     try { if (wakeLockSentinel) await wakeLockSentinel.release(); } catch {}
     wakeLockSentinel = null;
   }
 
-  // WebAudio
-  let audioCtx = null;
-  let master = null;
-
-  function ensureAudio() {
-    if (!audioCtx || audioCtx.state === "closed") {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Audio
+  let audioCtx=null, master=null;
+  function ensureAudio(){
+    if (!audioCtx || audioCtx.state==="closed"){
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
       master = null;
     }
-    if (!master) {
+    if (!master){
       master = audioCtx.createGain();
       master.gain.value = 0.95;
       master.connect(audioCtx.destination);
     }
   }
-
-  // Prime audio (call early in the gesture). No sound, just “unlock”.
-  function primeAudio() {
-    try {
+  function primeAudio(){
+    try{
       ensureAudio();
-      audioCtx.resume(); // intentionally not awaited
-      const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-      const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-      src.connect(audioCtx.destination);
-      src.start(0);
-      src.stop(0);
-    } catch {}
+      audioCtx.resume();
+      const b = audioCtx.createBuffer(1,1,audioCtx.sampleRate);
+      const s = audioCtx.createBufferSource();
+      s.buffer=b; s.connect(audioCtx.destination);
+      s.start(0); s.stop(0);
+    }catch{}
   }
-
-  // Try resuming repeatedly (helps iOS web-app flip to running)
-  function resumeBurst() {
-    if (!audioCtx) return;
-    for (let i = 0; i < 12; i++) {
-      setTimeout(() => { try { audioCtx.resume(); } catch {} }, i * 60);
+  function resumeBurst(){
+    if(!audioCtx) return;
+    for(let i=0;i<10;i++){
+      setTimeout(()=>{ try{ audioCtx.resume(); }catch{} }, i*80);
     }
   }
-
-  function canPlayNow() {
+  function canPlayNow(){
     ensureAudio();
-    if (audioCtx.state !== "running") {
-      try { audioCtx.resume(); } catch {}
-    }
-    return audioCtx.state === "running";
+    if(audioCtx.state!=="running"){ try{ audioCtx.resume(); }catch{} }
+    return audioCtx.state==="running";
   }
 
-  // Beep: louder + ~0.70s
-  function playBeep() {
-    if (!canPlayNow()) return false;
+  function playBeep(){
+    if(!canPlayNow()) return false;
     const now = audioCtx.currentTime;
-
-    const osc  = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc.type = "sine";
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type="sine";
     osc.frequency.setValueAtTime(880, now);
 
-    const peak = 0.22;
-    const attack = 0.03;
-    const holdUntil = 0.15;
-    const decayEnd = 0.63;
-    const stopAt = 0.70;
+    const peak=0.22, attack=0.03, holdUntil=0.15, decayEnd=0.63, stopAt=0.70;
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(peak, now+attack);
+    g.gain.setValueAtTime(peak, now+holdUntil);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+decayEnd);
 
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(peak, now + attack);
-    gain.gain.setValueAtTime(peak, now + holdUntil);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + decayEnd);
-
-    osc.connect(gain);
-    gain.connect(master);
-
-    osc.start(now);
-    osc.stop(now + stopAt);
+    osc.connect(g); g.connect(master);
+    osc.start(now); osc.stop(now+stopAt);
     return true;
   }
 
-  // Bell: longer + brighter
-  function playBell() {
-    if (!canPlayNow()) return false;
+  function playBell(){
+    if(!canPlayNow()) return false;
     const now = audioCtx.currentTime;
-
     const mix = audioCtx.createGain();
     mix.gain.value = 1.0;
     mix.connect(master);
 
-    const base = 528;
-    const ratios = [1.0, 2.0, 2.76, 3.12, 4.20, 5.40];
-    const amps   = [0.16, 0.10, 0.08, 0.055, 0.040, 0.030];
-    const decays = [5.2, 4.3, 3.7, 3.2, 2.8, 2.4];
+    const base=528;
+    const ratios=[1.0,2.0,2.76,3.12,4.20,5.40];
+    const amps=[0.16,0.10,0.08,0.055,0.040,0.030];
+    const decays=[5.2,4.3,3.7,3.2,2.8,2.4];
 
-    ratios.forEach((r, i) => {
+    ratios.forEach((r,i)=>{
       const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+      const g = audioCtx.createGain();
+      osc.type = (i>=2) ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(base*r, now);
+      osc.detune.setValueAtTime((Math.random()*10)-5, now);
 
-      osc.type = (i >= 2) ? "triangle" : "sine";
-      osc.frequency.setValueAtTime(base * r, now);
-      osc.detune.setValueAtTime((Math.random() * 10) - 5, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(amps[i], now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+decays[i]);
 
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(amps[i], now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + decays[i]);
-
-      osc.connect(gain);
-      gain.connect(mix);
-
-      osc.start(now);
-      osc.stop(now + decays[i] + 0.12);
+      osc.connect(g); g.connect(mix);
+      osc.start(now); osc.stop(now+decays[i]+0.12);
     });
 
-    // slight strike noise
-    const noiseDur = 0.45;
-    const bufferSize = Math.floor(audioCtx.sampleRate * noiseDur);
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.06;
+    const noiseDur=0.45;
+    const n = Math.floor(audioCtx.sampleRate*noiseDur);
+    const buf = audioCtx.createBuffer(1,n,audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<n;i++) data[i] = (Math.random()*2-1)*0.06;
 
-    const noise = audioCtx.createBufferSource();
-    noise.buffer = buffer;
+    const src = audioCtx.createBufferSource(); src.buffer=buf;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.03, now+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+0.25);
 
-    const nGain = audioCtx.createGain();
-    nGain.gain.setValueAtTime(0.0001, now);
-    nGain.gain.exponentialRampToValueAtTime(0.03, now + 0.012);
-    nGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
-
-    noise.connect(nGain);
-    nGain.connect(master);
-    noise.start(now);
-    noise.stop(now + noiseDur);
-
+    src.connect(g); g.connect(master);
+    src.start(now); src.stop(now+noiseDur);
     return true;
   }
 
-  // Retry that ALSO keeps trying resume()
-  function playWithRetry(kind, tries = 12, gapMs = 90) {
-    if (state !== "running") return;
-
-    // Keep nudging resume
-    try { if (audioCtx && audioCtx.state !== "running") audioCtx.resume(); } catch {}
-
-    let ok = false;
-    if (kind === "bell") ok = playBell();
-    else ok = playBeep();
-
-    if (!ok && tries > 0) setTimeout(() => playWithRetry(kind, tries - 1, gapMs), gapMs);
+  function playWithRetry(kind, tries=10, gap=90){
+    if(state!=="running") return;
+    try{ if(audioCtx && audioCtx.state!=="running") audioCtx.resume(); }catch{}
+    let ok=false;
+    if(kind==="bell") ok=playBell(); else ok=playBeep();
+    if(!ok && tries>0) setTimeout(()=>playWithRetry(kind, tries-1, gap), gap);
   }
-
-  function playDoubleBeep() {
+  function playDoubleBeep(){
     playWithRetry("beep");
-    setTimeout(() => playWithRetry("beep"), 900);
+    setTimeout(()=>playWithRetry("beep"), 900);
   }
 
-  // Cues
-  function clearCues() {
-    cueTimeouts.forEach(id => clearTimeout(id));
-    cueTimeouts = [];
-    nextCueIndex = 0;
+  // Scheduling
+  function clearCues(){
+    cueTimeouts.forEach(id=>clearTimeout(id));
+    cueTimeouts=[];
+    nextCueIndex=0;
   }
 
-  function computeScaledCues(selectedMinutes) {
-    const scale = selectedMinutes / TEMPLATE_TOTAL_MIN;
-    const cues = templateCues.map(c => ({
-      tSec: Math.round(c.tMin * 60 * scale),
-      kind: c.kind,
-      label: c.label
-    }));
-    cues[0].tSec = 0;
-    cues[cues.length - 1].tSec = selectedMinutes * 60;
-    for (let i = 1; i < cues.length; i++) {
-      if (cues[i].tSec <= cues[i - 1].tSec) cues[i].tSec = cues[i - 1].tSec + 1;
+  function computeScaledCues(mins){
+    const scale = mins / 30;
+    const cues = templateCues.map(c=>({ tSec: Math.round(c.tMin*60*scale), kind:c.kind, label:c.label }));
+    cues[0].tSec=0;
+    cues[cues.length-1].tSec = mins*60;
+    for(let i=1;i<cues.length;i++){
+      if(cues[i].tSec<=cues[i-1].tSec) cues[i].tSec = cues[i-1].tSec + 1;
     }
-    cues[cues.length - 1].tSec = selectedMinutes * 60;
+    cues[cues.length-1].tSec = mins*60;
     return cues;
   }
 
-  function renderChips(elapsedSec = 0) {
-    chipsEl.innerHTML = "";
-
+  function renderChips(elapsed=0){
+    chipsEl.innerHTML="";
     let activeIdx = nextCueIndex;
-    while (activeIdx < cuesScaled.length && cuesScaled[activeIdx].tSec <= elapsedSec + 0.02) activeIdx++;
+    while(activeIdx<cuesScaled.length && cuesScaled[activeIdx].tSec <= elapsed+0.02) activeIdx++;
 
-    cuesScaled.forEach((c, idx) => {
-      const div = document.createElement("div");
-      const isActive = (idx === activeIdx && state === "running");
+    cuesScaled.forEach((c,idx)=>{
+      const div=document.createElement("div");
+      const isActive = (idx===activeIdx && state==="running");
       div.className = "chip" + (isActive ? " active" : "");
-      const kindText = c.kind === "bell" ? "Bell" : (c.kind === "double" ? "Two beeps" : "Beep");
+      const kindText = c.kind==="bell" ? "Bell" : (c.kind==="double" ? "Two beeps" : "Beep");
       div.innerHTML = `<strong>${kindText}</strong> · ${formatCueTime(c.tSec)}`;
       chipsEl.appendChild(div);
     });
   }
 
-  function setButtons() {
-    const running = state === "running";
+  function setButtons(){
+    const running = state==="running";
     startBtn.disabled = running;
     stopBtn.disabled = !running;
     minutesSel.disabled = running;
+    keepAwakeEl.disabled = running; // lock toggle during a session
   }
 
-  function scheduleCues() {
+  function scheduleCues(){
     clearCues();
-    nextCueIndex = 0;
-
-    // skip index 0 because we fire start bell manually
-    for (let idx = 1; idx < cuesScaled.length; idx++) {
-      const cue = cuesScaled[idx];
-      const delayMs = Math.max(0, cue.tSec * 1000);
-
-      const id = setTimeout(() => {
-        if (state !== "running") return;
-
+    nextCueIndex=0;
+    for(let idx=1; idx<cuesScaled.length; idx++){
+      const cue=cuesScaled[idx];
+      const id = setTimeout(()=>{
+        if(state!=="running") return;
         stageLabel.textContent = cue.label;
 
-        if (cue.kind === "bell") playWithRetry("bell");
-        else if (cue.kind === "double") playDoubleBeep();
+        if(cue.kind==="bell") playWithRetry("bell");
+        else if(cue.kind==="double") playDoubleBeep();
         else playWithRetry("beep");
 
-        nextCueIndex = Math.min(cuesScaled.length, idx + 1);
-        const elapsed = (performance.now() - startPerf) / 1000;
-        renderChips(elapsed);
-
-        if (cue.tSec >= totalSec) finish();
-      }, delayMs);
-
+        nextCueIndex = Math.min(cuesScaled.length, idx+1);
+        if(cue.tSec >= totalSec) finish();
+      }, Math.max(0, cue.tSec*1000));
       cueTimeouts.push(id);
     }
-
-    renderChips(0);
   }
 
-  function tickUI() {
-    const elapsedSec = (performance.now() - startPerf) / 1000;
-    const remaining = totalSec - elapsedSec;
-
-    timeLeftEl.textContent = mmss(remaining);
-    setProgress(elapsedSec / totalSec);
-    renderChips(elapsedSec);
-
-    if (state === "running") rafId = requestAnimationFrame(tickUI);
+  // Low-power UI updates (4x/sec)
+  let uiTimer=null;
+  function tickUI(){
+    const elapsed = (performance.now()-startPerf)/1000;
+    const rem = totalSec - elapsed;
+    timeLeftEl.textContent = mmss(rem);
+    setProgress(elapsed/totalSec);
+    renderChips(elapsed);
+    if(rem<=0.01 && state==="running") finish();
+  }
+  function startUILoop(){
+    stopUILoop();
+    tickUI();
+    uiTimer=setInterval(tickUI, 250);
+  }
+  function stopUILoop(){
+    if(uiTimer) clearInterval(uiTimer);
+    uiTimer=null;
   }
 
-  function start() {
-    // Make UI start immediately even if audio is slow to wake
+  function start(){
     setStatus("Starting…");
 
-    primeAudio();     // gesture-sensitive
-    resumeBurst();    // extra nudges
+    primeAudio();
+    resumeBurst();
 
-    const selectedMinutes = parseInt(minutesSel.value, 10);
-    totalSec = selectedMinutes * 60;
-    cuesScaled = computeScaledCues(selectedMinutes);
+    const mins=parseInt(minutesSel.value,10);
+    totalSec=mins*60;
+    cuesScaled=computeScaledCues(mins);
 
-    state = "running";
-    startPerf = performance.now();
+    state="running";
+    startPerf=performance.now();
     setStatus("Meditating");
-    stageLabel.textContent = "Start bell";
+    stageLabel.textContent="Start bell";
     setButtons();
 
-    // request wake lock AFTER we prime audio
-    requestWakeLock().catch(() => {});
+    // Only keep awake if user explicitly enabled it
+    if(keepAwakeEl.checked) requestWakeLock().catch(()=>{});
 
-    // start bell with retries
-    playWithRetry("bell", 14, 80);
-
+    playWithRetry("bell", 12, 80);
     scheduleCues();
-
-    cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tickUI);
+    startUILoop();
   }
 
-  function stop() {
+  function stop(reason=null){
     clearCues();
-    cancelAnimationFrame(rafId);
-    releaseWakeLock().catch(() => {});
+    stopUILoop();
+    releaseWakeLock().catch(()=>{});
 
-    state = "idle";
+    state="idle";
     setStatus("Ready");
-    stageLabel.textContent = "Bell at start · Beeps along the way · Bell at end";
+    stageLabel.textContent = reason || "Bell at start · Beeps along the way · Bell at end";
     setButtons();
     setProgress(0);
 
-    const selectedMinutes = parseInt(minutesSel.value, 10);
-    totalSec = selectedMinutes * 60;
-    timeLeftEl.textContent = mmss(totalSec);
+    const mins=parseInt(minutesSel.value,10);
+    totalSec=mins*60;
+    timeLeftEl.textContent=mmss(totalSec);
 
-    cuesScaled = computeScaledCues(selectedMinutes);
-    nextCueIndex = 0;
+    cuesScaled=computeScaledCues(mins);
+    nextCueIndex=0;
     renderChips(0);
   }
 
-  function finish() {
+  function finish(){
     clearCues();
-    cancelAnimationFrame(rafId);
-    releaseWakeLock().catch(() => {});
+    stopUILoop();
+    releaseWakeLock().catch(()=>{});
 
-    // UI polish: Start enabled, Stop disabled
-    state = "idle";
+    state="idle";
     setStatus("Done");
-    stageLabel.textContent = "Session complete";
-    timeLeftEl.textContent = "00:00";
+    stageLabel.textContent="Session complete";
+    timeLeftEl.textContent="00:00";
     setProgress(1);
     setButtons();
   }
 
-  function init() {
-    const selectedMinutes = parseInt(minutesSel.value, 10);
-    totalSec = selectedMinutes * 60;
-    cuesScaled = computeScaledCues(selectedMinutes);
-    timeLeftEl.textContent = mmss(totalSec);
+  function init(){
+    const mins=parseInt(minutesSel.value,10);
+    totalSec=mins*60;
+    cuesScaled=computeScaledCues(mins);
+    timeLeftEl.textContent=mmss(totalSec);
     setProgress(0);
     renderChips(0);
     setButtons();
   }
 
   // Events
-  let lastStartAt = 0;
-  function startOnce() {
-    const now = Date.now();
-    if (now - lastStartAt < 700) return; // avoid touchend+click double fire
-    lastStartAt = now;
-    if (state === "running") return;
+  let lastStartAt=0;
+  function startOnce(){
+    const now=Date.now();
+    if(now-lastStartAt<700) return;
+    lastStartAt=now;
+    if(state==="running") return;
     start();
   }
 
-  // Prime on earliest gesture
-  startBtn.addEventListener("touchstart", primeAudio, { passive: true });
-  startBtn.addEventListener("mousedown", primeAudio, { passive: true });
+  startBtn.addEventListener("touchstart", primeAudio, { passive:true });
+  startBtn.addEventListener("mousedown", primeAudio, { passive:true });
+  startBtn.addEventListener("touchend", ()=>startOnce(), { passive:true });
+  startBtn.addEventListener("click", ()=>startOnce());
+  stopBtn.addEventListener("click", ()=>stop());
+  minutesSel.addEventListener("change", ()=>{ if(state==="idle") init(); });
 
-  startBtn.addEventListener("touchend", () => startOnce(), { passive: true });
-  startBtn.addEventListener("click", () => startOnce());
-
-  stopBtn.addEventListener("click", () => stop());
-
-  minutesSel.addEventListener("change", () => {
-    if (state !== "idle") return;
-    init();
-  });
-
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      wakeLockSentinel = null;
-      return;
-    }
-    if (state === "running" && !wakeLockSentinel) requestWakeLock().catch(() => {});
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
-  });
+  // Safety: if you leave the app, stop the session and release wake lock
+  function hardStopOnLeave(){
+    if(state==="running") stop("Stopped (left app)");
+  }
+  document.addEventListener("visibilitychange", ()=>{ if(document.hidden) hardStopOnLeave(); });
+  window.addEventListener("pagehide", hardStopOnLeave);
+  window.addEventListener("blur", hardStopOnLeave);
+  document.addEventListener("freeze", hardStopOnLeave);
 
   init();
 })();
