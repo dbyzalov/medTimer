@@ -115,56 +115,6 @@
     }
     button:disabled{ opacity:.45; filter: saturate(.6); transform:none !important; }
 
-    .row2{
-      margin-top: 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-    }
-    .toggle{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      user-select:none;
-      -webkit-user-select:none;
-    }
-    .toggle input{
-      width: 46px;
-      height: 28px;
-      appearance:none;
-      -webkit-appearance:none;
-      background: rgba(255,255,255,.10);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 999px;
-      position:relative;
-      outline:none;
-      cursor:pointer;
-    }
-    .toggle input::after{
-      content:"";
-      position:absolute;
-      top: 3px;
-      left: 3px;
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.85);
-      transition: transform .18s ease;
-    }
-    .toggle input:checked{
-      background: rgba(125,211,252,.22);
-      border-color: rgba(125,211,252,.35);
-    }
-    .toggle input:checked::after{ transform: translateX(18px); }
-    .toggleText{
-      display:flex;
-      flex-direction:column;
-      gap: 2px;
-    }
-    .toggleText .t1{ font-size:13px; color: rgba(255,255,255,.82); }
-    .toggleText .t2{ font-size:12px; color: var(--muted); }
-
     .timeline{ margin-top: 12px; display:flex; flex-direction:column; gap: 8px; }
     .chipRow{ display:flex; flex-wrap:wrap; gap: 8px; }
     .chip{
@@ -239,16 +189,6 @@
         </select>
       </div>
 
-      <div class="row2">
-        <div class="toggle">
-          <input id="keepAwake" type="checkbox" />
-          <div class="toggleText">
-            <div class="t1">Keep screen awake during session</div>
-            <div class="t2">OFF by default to save battery</div>
-          </div>
-        </div>
-      </div>
-
       <div class="buttons">
         <button class="primary" id="startBtn">Start</button>
         <button class="warn" id="stopBtn" disabled>Stop</button>
@@ -265,6 +205,7 @@
 
 <script>
 (() => {
+  // Template cues for 30-minute sit
   const templateCues = [
     { tMin: 0,  kind: "bell",   label: "Start bell" },
     { tMin: 3,  kind: "beep",   label: "Stage shift" },
@@ -276,7 +217,6 @@
   ];
 
   const minutesSel  = document.getElementById("minutes");
-  const keepAwakeEl = document.getElementById("keepAwake");
   const startBtn    = document.getElementById("startBtn");
   const stopBtn     = document.getElementById("stopBtn");
   const timeLeftEl  = document.getElementById("timeLeft");
@@ -286,10 +226,11 @@
   const pctEl       = document.getElementById("pct");
   const chipsEl     = document.getElementById("chips");
 
+  // Progress ring
   const R = 36, CIRC = 2 * Math.PI * R;
   ring.style.strokeDasharray = `${CIRC} ${CIRC}`;
   ring.style.strokeDashoffset = `${CIRC}`;
-  function setProgress(p) {
+  function setProgress(p){
     const clamped = Math.min(1, Math.max(0, p));
     ring.style.strokeDashoffset = String(CIRC * (1 - clamped));
     pctEl.textContent = `${Math.round(clamped * 100)}%`;
@@ -310,28 +251,31 @@
   let cuesScaled = [];
   let nextCueIndex = 0;
 
-  // Wake lock (ONLY if toggle enabled)
+  // Wake Lock (ALWAYS while running)
   let wakeLockSentinel = null;
-  async function requestWakeLock() {
-    try {
-      if (!("wakeLock" in navigator)) return false;
+  async function requestWakeLock(){
+    try{
+      if(!("wakeLock" in navigator)) return false;
       wakeLockSentinel = await navigator.wakeLock.request("screen");
       return true;
-    } catch { wakeLockSentinel = null; return false; }
+    }catch{
+      wakeLockSentinel = null;
+      return false;
+    }
   }
   async function releaseWakeLock(){
-    try { if (wakeLockSentinel) await wakeLockSentinel.release(); } catch {}
+    try{ if(wakeLockSentinel) await wakeLockSentinel.release(); }catch{}
     wakeLockSentinel = null;
   }
 
-  // Audio
+  // WebAudio
   let audioCtx=null, master=null;
   function ensureAudio(){
-    if (!audioCtx || audioCtx.state==="closed"){
+    if(!audioCtx || audioCtx.state==="closed"){
       audioCtx = new (window.AudioContext||window.webkitAudioContext)();
       master = null;
     }
-    if (!master){
+    if(!master){
       master = audioCtx.createGain();
       master.gain.value = 0.95;
       master.connect(audioCtx.destination);
@@ -340,7 +284,7 @@
   function primeAudio(){
     try{
       ensureAudio();
-      audioCtx.resume();
+      audioCtx.resume(); // not awaited (gesture-friendly)
       const b = audioCtx.createBuffer(1,1,audioCtx.sampleRate);
       const s = audioCtx.createBufferSource();
       s.buffer=b; s.connect(audioCtx.destination);
@@ -359,11 +303,13 @@
     return audioCtx.state==="running";
   }
 
+  // Louder, longer beep (~0.70s)
   function playBeep(){
     if(!canPlayNow()) return false;
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const g = audioCtx.createGain();
+
     osc.type="sine";
     osc.frequency.setValueAtTime(880, now);
 
@@ -378,9 +324,11 @@
     return true;
   }
 
+  // Longer, brighter bell
   function playBell(){
     if(!canPlayNow()) return false;
     const now = audioCtx.currentTime;
+
     const mix = audioCtx.createGain();
     mix.gain.value = 1.0;
     mix.connect(master);
@@ -393,6 +341,7 @@
     ratios.forEach((r,i)=>{
       const osc = audioCtx.createOscillator();
       const g = audioCtx.createGain();
+
       osc.type = (i>=2) ? "triangle" : "sine";
       osc.frequency.setValueAtTime(base*r, now);
       osc.detune.setValueAtTime((Math.random()*10)-5, now);
@@ -419,6 +368,7 @@
 
     src.connect(g); g.connect(master);
     src.start(now); src.stop(now+noiseDur);
+
     return true;
   }
 
@@ -434,13 +384,12 @@
     setTimeout(()=>playWithRetry("beep"), 900);
   }
 
-  // Scheduling
+  // Cues
   function clearCues(){
     cueTimeouts.forEach(id=>clearTimeout(id));
     cueTimeouts=[];
     nextCueIndex=0;
   }
-
   function computeScaledCues(mins){
     const scale = mins / 30;
     const cues = templateCues.map(c=>({ tSec: Math.round(c.tMin*60*scale), kind:c.kind, label:c.label }));
@@ -473,16 +422,18 @@
     startBtn.disabled = running;
     stopBtn.disabled = !running;
     minutesSel.disabled = running;
-    keepAwakeEl.disabled = running; // lock toggle during a session
   }
 
   function scheduleCues(){
     clearCues();
     nextCueIndex=0;
+
+    // Skip index 0; we fire the start bell immediately on Start.
     for(let idx=1; idx<cuesScaled.length; idx++){
       const cue=cuesScaled[idx];
       const id = setTimeout(()=>{
         if(state!=="running") return;
+
         stageLabel.textContent = cue.label;
 
         if(cue.kind==="bell") playWithRetry("bell");
@@ -490,13 +441,14 @@
         else playWithRetry("beep");
 
         nextCueIndex = Math.min(cuesScaled.length, idx+1);
+
         if(cue.tSec >= totalSec) finish();
       }, Math.max(0, cue.tSec*1000));
       cueTimeouts.push(id);
     }
   }
 
-  // Low-power UI updates (4x/sec)
+  // Ultra low-power UI loop: 1x/sec
   let uiTimer=null;
   function tickUI(){
     const elapsed = (performance.now()-startPerf)/1000;
@@ -509,16 +461,17 @@
   function startUILoop(){
     stopUILoop();
     tickUI();
-    uiTimer=setInterval(tickUI, 250);
+    uiTimer=setInterval(tickUI, 1000);
   }
   function stopUILoop(){
     if(uiTimer) clearInterval(uiTimer);
     uiTimer=null;
   }
 
-  function start(){
+  async function start(){
     setStatus("Starting…");
 
+    // Gesture-sensitive: prime audio first
     primeAudio();
     resumeBurst();
 
@@ -532,22 +485,23 @@
     stageLabel.textContent="Start bell";
     setButtons();
 
-    // Only keep awake if user explicitly enabled it
-    if(keepAwakeEl.checked) requestWakeLock().catch(()=>{});
+    // Keep device awake while running
+    requestWakeLock().catch(()=>{});
 
+    // Start bell and schedule
     playWithRetry("bell", 12, 80);
     scheduleCues();
     startUILoop();
   }
 
-  function stop(reason=null){
+  function stop(){
     clearCues();
     stopUILoop();
     releaseWakeLock().catch(()=>{});
 
     state="idle";
     setStatus("Ready");
-    stageLabel.textContent = reason || "Bell at start · Beeps along the way · Bell at end";
+    stageLabel.textContent = "Bell at start · Beeps along the way · Bell at end";
     setButtons();
     setProgress(0);
 
@@ -587,7 +541,7 @@
   let lastStartAt=0;
   function startOnce(){
     const now=Date.now();
-    if(now-lastStartAt<700) return;
+    if(now-lastStartAt<700) return; // avoid double-fire
     lastStartAt=now;
     if(state==="running") return;
     start();
@@ -600,14 +554,14 @@
   stopBtn.addEventListener("click", ()=>stop());
   minutesSel.addEventListener("change", ()=>{ if(state==="idle") init(); });
 
-  // Safety: if you leave the app, stop the session and release wake lock
-  function hardStopOnLeave(){
-    if(state==="running") stop("Stopped (left app)");
-  }
-  document.addEventListener("visibilitychange", ()=>{ if(document.hidden) hardStopOnLeave(); });
-  window.addEventListener("pagehide", hardStopOnLeave);
-  window.addEventListener("blur", hardStopOnLeave);
-  document.addEventListener("freeze", hardStopOnLeave);
+  // Re-acquire wake lock if iOS drops it when returning
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden) return;
+    if(state==="running"){
+      requestWakeLock().catch(()=>{});
+      if(audioCtx && audioCtx.state==="suspended") audioCtx.resume().catch(()=>{});
+    }
+  });
 
   init();
 })();
